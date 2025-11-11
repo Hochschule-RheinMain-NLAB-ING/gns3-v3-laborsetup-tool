@@ -131,6 +131,15 @@ def create_user(host, login_result, user_payload, create_path):
         return False, err
 
 def create_users_from_csv(cfg, login_result):
+    """
+    Liest Benutzer aus einer CSV-Datei mit Kopfzeile ein (getrennt durch ; oder ,)
+    und erstellt neue Benutzer in GNS3.
+
+    Erwartete Spaltennamen (Groß-/Kleinschreibung egal):
+        Benutzername, Vorname, Nachname, E-Mail
+
+    Passwort wird automatisch als username + "123" gesetzt.
+    """
     csv_path = cfg["csv_path"]
     if not os.path.exists(csv_path):
         log(f"CSV-Datei '{csv_path}' wurde nicht gefunden.", is_error=True)
@@ -138,30 +147,138 @@ def create_users_from_csv(cfg, login_result):
         sys.exit(1)
 
     log(f"📄 Lese Benutzer aus '{csv_path}' ...")
+
     success = 0
     fail = 0
 
+    # Versuche zuerst mit Semikolon, sonst mit Komma
     with open(csv_path, newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
+        # Versuche Delimiter zu erraten
+        sample = csvfile.read(1024)
+        csvfile.seek(0)
+        dialect = csv.Sniffer().sniff(sample, delimiters=";,")
+        reader = csv.reader(csvfile, dialect)
+
+        headers = next(reader, None)
+        if not headers:
+            log("❌ CSV-Datei ist leer oder ungültig.", is_error=True)
+            pause_exit()
+            sys.exit(1)
+
+        # Debug: zeige erkannte Spalten
+        log(f"📑 Erkannte Spalten: {headers}")
+
+        def find_index(name):
+            for i, h in enumerate(headers):
+                if h.strip().lower() == name.lower():
+                    return i
+            return None
+
+        idx_username = find_index("Benutzername")
+        idx_vorname = find_index("Vorname")
+        idx_nachname = find_index("Nachname")
+        idx_email = find_index("E-Mail")
+
+        if None in (idx_username, idx_vorname, idx_nachname, idx_email):
+            log("❌ Eine oder mehrere erwartete Spalten fehlen in der CSV.", is_error=True)
+            log(f"Gefundene Spalten: {headers}", is_error=True)
+            pause_exit()
+            sys.exit(1)
+
         for row in reader:
-            username = row.get("username")
+            # Leere Zeilen überspringen
+            if not row or len(row) < max(idx_email, idx_nachname, idx_vorname, idx_username) + 1:
+                continue
+
+            username = row[idx_username].strip()
+            vorname = row[idx_vorname].strip()
+            nachname = row[idx_nachname].strip()
+            email = row[idx_email].strip()
+
             if not username:
                 continue
 
-            log(f"👤 Erstelle Benutzer '{username}' ...")
-            ok, result = create_user(cfg["host"], login_result, row, cfg["create_path"])
+            fullname = f"{vorname} {nachname}".strip()
+            password = f"{username}123"
+
+            user_payload = {
+                "username": username,
+                "is_active": True,
+                "email": email,
+                "full_name": fullname,
+                "password": password
+            }
+
+            log(f"👤 Erstelle Benutzer '{username}' ({fullname}) ...")
+            ok, result = create_user(cfg["host"], login_result, user_payload, cfg["create_path"])
             if ok:
                 log(f"   ✅ Benutzer '{username}' erfolgreich angelegt.")
                 success += 1
             else:
                 log(f"   ❌ Fehler bei '{username}': {result}", is_error=True)
                 fail += 1
-            time.sleep(0.2)  # kleine Pause zur Entlastung des Servers
+            time.sleep(0.2)
 
     log("\n===== Zusammenfassung =====")
     log(f"✅ Erfolgreich: {success}")
     log(f"❌ Fehlgeschlagen: {fail}")
     return success, fail
+
+def create_ressource_pool(host, login_result, name):
+    create_path = "/v3/pools"
+    url = f"http://{host}{create_path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    scheme = {
+        "name": name
+    }
+
+    try:
+        resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        return False, f"Verbindungsfehler: {e}"
+
+    if resp.status_code in (200, 201):
+        log(resp.json())
+        log(f"Pool {name} angelegt")
+        return True, resp.json()
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False, err
+
+def create_project(host, login_result, name):
+    create_path = "/v3/projects"
+    url = f"http://{host}{create_path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    scheme = {
+        "name": name
+    }
+
+    try:
+        resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        return False, f"Verbindungsfehler: {e}"
+
+    if resp.status_code in (200, 201):
+        log(resp.json())
+        log(f"Projekt {name} angelegt")
+        return True, resp.json()
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False, err
 
 def create_test_user(host, login_result):
     create_path = "/v3/access/users"
@@ -184,12 +301,14 @@ def create_test_user(host, login_result):
 
     if resp.status_code in (200, 201):
         log(resp.json())
+        log("User angelegt")
         return True, resp.json()
     else:
         try:
             err = resp.json()
         except:
             err = resp.text
+        log("Etwas ist schiefgelaufen: ")
         log(resp.json())
         return False, err
 
@@ -204,9 +323,14 @@ def main():
     # login-versuch zum gns3-server
     login_result = login(cfg["host"], cfg["login_user"], cfg["login_pass"])
     # login-versuch zum email- ding
-    # create_users_from_csv(cfg, login_result)
-    # test user create
-    create_test_user(cfg["host"], login_result)
+    #
+    #
+    
+    #create_users_from_csv(cfg, login_result)
+
+    #create_ressource_pool(cfg["host"], login_result, "pool1")
+    
+    create_project(cfg["host"], login_result, "project1")
 
     log("🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log")
     #pause_exit()
