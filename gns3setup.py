@@ -16,14 +16,15 @@ import time
 import sys
 import os
 import configparser
+from mail import MailClient
 from datetime import datetime
 
-# ==== Einstellungen ====
+# Debug-Einstellungen
 DEFAULT_TIMEOUT = 10
-VERIFY_TLS = True  # False bei Self-Signed (nicht empfohlen)
+VERIFY_TLS = True
 LOG_FILE = "gns3_api_tool.log"
 
-# ==== Logging ====
+# Logging
 def log_start():
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write("\n=== Lauf gestartet am {} ===\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -58,11 +59,12 @@ def load_config(path="config.ini"):
         login_pass = config["gns3"]["login_pass"]
         anzahl_projekte = config["gns3"]["anzahl_projekte"]
         csv_path = config["files"]["csv_path"]
-        create_path = config["files"].get("create_path", "/v3/access/users")
+        create_path = config["files"]["create_path"]
         email = config["email"]["email_adresse"]
         email_pw = config["email"]["email_pass"]
         email_server = config["email"]["smtp"]
         email_port = config["email"]["port"]
+        email_option = config["email"]["email_option"]
     except KeyError as e:
         log(f"Fehlender Eintrag in config.ini: {e}", is_error=True)
         pause_exit()
@@ -78,7 +80,8 @@ def load_config(path="config.ini"):
         "email": email.strip(),
         "email_pw": email_pw.strip(),
         "email_server": email_server.strip(),
-        "email_port": email_port.strip()
+        "email_port": email_port.strip(),
+        "email_option": email_option.strip()
     }
 
 # Login funktionen
@@ -121,7 +124,7 @@ def build_headers(login_result):
         headers["Authorization"] = f"Bearer {login_result['token']}"
     return headers
 
-def create_users_from_csv(cfg, login_result):
+def create_users_from_csv(cfg, login_result, mailman: MailClient = None):
     """
     Liest Benutzer aus einer CSV-Datei mit Kopfzeile ein (getrennt durch ; oder ,)
     und erstellt neue Benutzer in GNS3.
@@ -203,30 +206,44 @@ def create_users_from_csv(cfg, login_result):
 
             # Benutzer anlegen
             log(f"👤 Erstelle Benutzer '{username}' ({fullname}) ...")
-            ok, result = create_user(host, login_result, user_payload)
-            if ok:
+            result = create_user(host, login_result, user_payload)
+            # evtl weglassen
+            if result != False:
                 log(f"   ✅ Benutzer '{username}' erfolgreich angelegt.")
-                success += 1
             else:
                 log(f"   ❌ Fehler bei '{username}': {result}", is_error=True)
                 fail += 1
                 #continue
-            # evtl weglassen
             time.sleep(0.2)
+
             # Ressource Pool für Benutzer anlegen
-            pool_id = create_ressource_pool(host, login_result, (username+"_pool"))
+            pool_id = create_ressource_pool(host, login_result, (username+"_poolll"))
             if pool_id == False:
                 continue
-            project_id = create_project(host, login_result, (username+"_project1"))
-            if project_id == False:
-                continue
+            # Projekte erstellen und direkt dem benutzereigenen Pool hinzufügen
+            for i in range(int(cfg["anzahl_projekte"])):
+                project_id = create_project(host, login_result, (username+"_project"+str(i)))
+                if project_id == False:
+                    continue
+                allocate_project_to_pool(host, login_result, project_id, pool_id)
+
+            # Email versenden bei Option eingeschaltet
+            if mailman is not None:
+                mailman.send_account_mail(
+                    to="max95.0@gmx.de",
+                    name=fullname,
+                    account=username,
+                    password=password
+                )
+            # Wenn bis hier alles lief, wurde Nutzer erfolgreich mit Pool+Prj angelegt
+            success += 1
 
     log("\n===== Zusammenfassung =====")
     log(f"✅ Erfolgreich: {success}")
     log(f"❌ Fehlgeschlagen: {fail}")
     return success, fail
 
-def create_user(host, login_result, user_payload):
+def create_user(host: str, login_result, user_payload: str):
     create_path = "/v3/access/users"
     url = f"http://{host}{create_path}"
     headers = build_headers(login_result)
@@ -235,19 +252,22 @@ def create_user(host, login_result, user_payload):
     try:
         resp = session.post(url, json=user_payload, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        return False, f"Verbindungsfehler: {e}"
+        log(f"Verbindungsfehler: {e}")
+        return False
 
     if resp.status_code in (200, 201):
+        log(f"   ✅ Benutzer erfolgreich angelegt.")
         user_id = resp.json().get("user_id")
-        return True, user_id
+        return user_id
     else:
         try:
             err = resp.json()
         except:
             err = resp.text
-        return False, err
+        log(resp.json(), is_error=True)
+        return False
 
-def create_ressource_pool(host, login_result, name):
+def create_ressource_pool(host: str, login_result, name: str):
     create_path = "/v3/pools"
     url = f"http://{host}{create_path}"
     headers = build_headers(login_result)
@@ -260,6 +280,7 @@ def create_ressource_pool(host, login_result, name):
     try:
         resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
+        log(f"Verbindungsfehler: {e}")
         return False
 
     if resp.status_code in (200, 201):
@@ -272,11 +293,10 @@ def create_ressource_pool(host, login_result, name):
             err = resp.json()
         except:
             err = resp.text
-        log("Etwas ist schiefgelaufen: ")
-        log(resp.json())
+        log(resp.json(), is_error=True)
         return False
 
-def create_project(host, login_result, name):
+def create_project(host: str, login_result, name: str):
     create_path = "/v3/projects"
     url = f"http://{host}{create_path}"
     headers = build_headers(login_result)
@@ -289,7 +309,8 @@ def create_project(host, login_result, name):
     try:
         resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        return False, f"Verbindungsfehler: {e}"
+        log(f"Verbindungsfehler: {e}")
+        return False
 
     if resp.status_code in (200, 201):
         log(resp.json())
@@ -305,5 +326,26 @@ def create_project(host, login_result, name):
         log(resp.json())
         return False
 
-def allocate_project_to_pool():
-    pass
+def allocate_project_to_pool(host: str, login_result, project_id: str, pool_id:str) -> bool:
+    path = ("/v3/pools/"+pool_id+"/resources/"+project_id)
+    url = f"http://{host}{path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    try:
+        resp = session.put(url, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        log(f"Verbindungsfehler: {e}")
+        return False
+
+    if resp.status_code == 204:
+        log(f"Projekt {project_id} zu Pool {pool_id} hinzugefügt")
+        return True
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False
