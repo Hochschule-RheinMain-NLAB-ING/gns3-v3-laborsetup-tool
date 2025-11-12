@@ -9,22 +9,19 @@ def main():
     # config.ini laden    
     cfg = gs.load_config()
 
-    # login-versuch zum gns3-server
+    # Login-versuch zum gns3-server
     login_result = gs.login(cfg["host"], cfg["login_user"], cfg["login_pass"])
 
-    # login-versuch zum email-server
-    mailman = MailClient(cfg["email_server"], cfg["email_port"], cfg["email"], cfg["email_pw"])
-    mailman.login()
-    #
-    mailman.send_account_mail(
-        to="max95.0@gmx.de",
-        name = "idiot",
-        account="flachwixer",
-        password="passowrd123"
-    )
-    #
-    
-    #gs.create_users_from_csv(cfg, login_result)
+    # Login-versuch zum email-server
+    if cfg["email_option"] == "true":
+        mailman = MailClient(cfg["email_server"], cfg["email_port"], cfg["email"], cfg["email_pw"])
+        mailman.login()
+
+        # Hauptablauf .csv Tabelle einlesen
+        gs.create_users_from_csv(cfg, login_result, mailman)
+    else:
+        # Hauptablauf .csv Tabelle einlesen OHNE MAIL
+        gs.create_users_from_csv(cfg, login_result)
 
     gs.log("🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log")
     #pause_exit()
