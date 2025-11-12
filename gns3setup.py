@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""
+Automatisches Tool zum Anlegen von Benutzern in GNS3 über die REST-API.
+
+Ablauf:
+1. Konfiguration aus config.ini lesen
+2. Login durchführen
+3. Benutzer aus CSV-Datei anlegen
+4. Statusmeldungen in Konsole + Fehler in Logdatei schreiben
+5. Auf Tastendruck beenden
+"""
+
+import requests
+import csv
+import time
+import sys
+import os
+import configparser
+from datetime import datetime
+
+# ==== Einstellungen ====
+DEFAULT_TIMEOUT = 10
+VERIFY_TLS = True  # False bei Self-Signed (nicht empfohlen)
+LOG_FILE = "gns3_api_tool.log"
+
+# ==== Logging ====
+def log_start():
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write("\n=== Lauf gestartet am {} ===\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+def log(msg: str, is_error: bool = False):
+    """Schreibt eine Meldung mit Zeitstempel in die Logdatei."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    entry = f"[{timestamp}] {'ERROR' if is_error else 'INFO'}: {msg}\n"
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(entry)
+    # In Konsole nur kurz anzeigen (Fehler farbig)
+    if is_error:
+        print(f"❌ {msg}")
+    else:
+        print(msg)
+
+def pause_exit():
+    input("\n✅ Vorgang abgeschlossen. Drücke eine beliebige Taste zum Beenden...")
+
+def load_config(path="config.ini"):
+    if not os.path.exists(path):
+        log(f"Konfigurationsdatei '{path}' wurde nicht gefunden.", is_error=True)
+        pause_exit()
+        sys.exit(1)
+
+    config = configparser.ConfigParser()
+    config.read(path, encoding="utf-8")
+
+    try:
+        host = config["gns3"]["host"]
+        login_user = config["gns3"]["login_user"]
+        login_pass = config["gns3"]["login_pass"]
+        anzahl_projekte = config["gns3"]["anzahl_projekte"]
+        csv_path = config["files"]["csv_path"]
+        create_path = config["files"].get("create_path", "/v3/access/users")
+        email = config["email"]["email_adresse"]
+        email_pw = config["email"]["email_pass"]
+        email_server = config["email"]["smtp"]
+        email_port = config["email"]["port"]
+    except KeyError as e:
+        log(f"Fehlender Eintrag in config.ini: {e}", is_error=True)
+        pause_exit()
+        sys.exit(1)
+
+    return {
+        "host": host.strip(),
+        "login_user": login_user.strip(),
+        "login_pass": login_pass.strip(),
+        "csv_path": csv_path.strip(),
+        "create_path": create_path.strip(),
+        "anzahl_projekte": anzahl_projekte.strip(),
+        "email": email.strip(),
+        "email_pw": email_pw.strip(),
+        "email_server": email_server.strip(),
+        "email_port": email_port.strip()
+    }
+
+# Login funktionen
+def login(host: str, username: str, password: str):
+    url = f"http://{host}/v3/access/users/authenticate"
+    payload = {"username": username, "password": password}
+    headers = {"Content-Type": "application/json"}
+
+    log(f"🔐 Melde an bei {host} als '{username}' ...")
+    s = requests.Session()
+
+    try:
+        resp = s.post(url, json=payload, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        log(f"Login-Fehler: {e}", is_error=True)
+        pause_exit()
+        sys.exit(1)
+
+    if not resp.ok:
+        log(f"Login fehlgeschlagen: {resp.status_code} {resp.text}", is_error=True)
+        pause_exit()
+        sys.exit(1)
+
+    try:
+        raw = resp.json()
+    except Exception:
+        raw = {}
+
+    token = raw.get("token") or raw.get("access_token")
+    if token:
+        log("✅ GNS3-Server Login erfolgreich (Token erhalten).")
+        return {"session": s, "token": token}
+    else:
+        log("✅ GNS3-Server Login erfolgreich (Session-Cookie wird verwendet).")
+        return {"session": s}
+
+def build_headers(login_result):
+    headers = {"Content-Type": "application/json"}
+    if "token" in login_result:
+        headers["Authorization"] = f"Bearer {login_result['token']}"
+    return headers
+
+def create_users_from_csv(cfg, login_result):
+    """
+    Liest Benutzer aus einer CSV-Datei mit Kopfzeile ein (getrennt durch ; oder ,)
+    und erstellt neue Benutzer in GNS3.
+
+    Erwartete Spaltennamen (Groß-/Kleinschreibung egal):
+        Benutzername, Vorname, Nachname, E-Mail
+
+    Passwort wird automatisch als username + "123" gesetzt.
+    """
+    csv_path = cfg["csv_path"]
+    host = cfg["host"]
+    if not os.path.exists(csv_path):
+        log(f"CSV-Datei '{csv_path}' wurde nicht gefunden.", is_error=True)
+        pause_exit()
+        sys.exit(1)
+
+    log(f"📄 Lese Benutzer aus '{csv_path}' ...")
+
+    success = 0
+    fail = 0
+
+    # Versuche zuerst mit Semikolon, sonst mit Komma
+    with open(csv_path, newline='', encoding='utf-8') as csvfile:
+        # Versuche Delimiter zu erraten
+        sample = csvfile.read(1024)
+        csvfile.seek(0)
+        dialect = csv.Sniffer().sniff(sample, delimiters=";,")
+        reader = csv.reader(csvfile, dialect)
+
+        headers = next(reader, None)
+        if not headers:
+            log("❌ CSV-Datei ist leer oder ungültig.", is_error=True)
+            pause_exit()
+            sys.exit(1)
+
+        # Debug: zeige erkannte Spalten
+        log(f"📑 Erkannte Spalten: {headers}")
+
+        def find_index(name):
+            for i, h in enumerate(headers):
+                if h.strip().lower() == name.lower():
+                    return i
+            return None
+
+        idx_username = find_index("Benutzername")
+        idx_vorname = find_index("Vorname")
+        idx_nachname = find_index("Nachname")
+        idx_email = find_index("E-Mail")
+
+        if None in (idx_username, idx_vorname, idx_nachname, idx_email):
+            log("❌ Eine oder mehrere erwartete Spalten fehlen in der CSV.", is_error=True)
+            log(f"Gefundene Spalten: {headers}", is_error=True)
+            pause_exit()
+            sys.exit(1)
+
+        for row in reader:
+            # Leere Zeilen überspringen
+            if not row or len(row) < max(idx_email, idx_nachname, idx_vorname, idx_username) + 1:
+                continue
+
+            username = row[idx_username].strip()
+            vorname = row[idx_vorname].strip()
+            nachname = row[idx_nachname].strip()
+            email = row[idx_email].strip()
+
+            if not username:
+                continue
+
+            fullname = f"{vorname} {nachname}".strip()
+            password = f"{username}123"
+
+            user_payload = {
+                "username": username,
+                "is_active": True,
+                "email": email,
+                "full_name": fullname,
+                "password": password
+            }
+
+            # Benutzer anlegen
+            log(f"👤 Erstelle Benutzer '{username}' ({fullname}) ...")
+            ok, result = create_user(host, login_result, user_payload)
+            if ok:
+                log(f"   ✅ Benutzer '{username}' erfolgreich angelegt.")
+                success += 1
+            else:
+                log(f"   ❌ Fehler bei '{username}': {result}", is_error=True)
+                fail += 1
+                #continue
+            # evtl weglassen
+            time.sleep(0.2)
+            # Ressource Pool für Benutzer anlegen
+            pool_id = create_ressource_pool(host, login_result, (username+"_pool"))
+            if pool_id == False:
+                continue
+            project_id = create_project(host, login_result, (username+"_project1"))
+            if project_id == False:
+                continue
+
+    log("\n===== Zusammenfassung =====")
+    log(f"✅ Erfolgreich: {success}")
+    log(f"❌ Fehlgeschlagen: {fail}")
+    return success, fail
+
+def create_user(host, login_result, user_payload):
+    create_path = "/v3/access/users"
+    url = f"http://{host}{create_path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    try:
+        resp = session.post(url, json=user_payload, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        return False, f"Verbindungsfehler: {e}"
+
+    if resp.status_code in (200, 201):
+        user_id = resp.json().get("user_id")
+        return True, user_id
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        return False, err
+
+def create_ressource_pool(host, login_result, name):
+    create_path = "/v3/pools"
+    url = f"http://{host}{create_path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    scheme = {
+        "name": name
+    }
+
+    try:
+        resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        return False
+
+    if resp.status_code in (200, 201):
+        log(resp.json())
+        log(f"Pool {name} angelegt")
+        pool_id = resp.json().get("resource_pool_id")
+        return pool_id
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False
+
+def create_project(host, login_result, name):
+    create_path = "/v3/projects"
+    url = f"http://{host}{create_path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    scheme = {
+        "name": name
+    }
+
+    try:
+        resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        return False, f"Verbindungsfehler: {e}"
+
+    if resp.status_code in (200, 201):
+        log(resp.json())
+        log(f"Projekt {name} angelegt")
+        project_id = resp.json().get("project_id")
+        return project_id
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False
+
+def allocate_project_to_pool():
+    pass
