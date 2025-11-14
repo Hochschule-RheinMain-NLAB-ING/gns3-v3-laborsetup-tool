@@ -349,3 +349,29 @@ def allocate_project_to_pool(host: str, login_result, project_id: str, pool_id:s
         log("Etwas ist schiefgelaufen: ")
         log(resp.json())
         return False
+
+def create_ace(host: str, login_result):
+    # poolverzeichnis als endpoint
+    path = ("/v3/access/acl")
+    url = f"http://{host}{path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+
+    try:
+        resp = session.get(url, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        log(f"Verbindungsfehler: {e}")
+        return False
+
+    if resp.status_code == 200:
+        log(f"Projekt  hinzugefügt")
+        return True
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False
+    # einzeluser mit userid mit rechtegruppe "User
