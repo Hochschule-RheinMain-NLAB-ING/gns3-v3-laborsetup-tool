@@ -375,3 +375,6 @@ def create_ace(host: str, login_result):
         log(resp.json())
         return False
     # einzeluser mit userid mit rechtegruppe "User
+
+def get_role_id_user(host: str, login_result):
+    pass
