@@ -413,7 +413,11 @@ def get_role_id_user(host: str, login_result):
         log("Etwas ist schiefgelaufen: ")
         log(resp.json())
         return False
-    # einzeluser mit userid mit rechtegruppe "User
 
-def get_role_id_user(host: str, login_result):
-    pass
+def get_role_id_by_name(roles, target_name):
+    for role in roles:
+        if role.get("name") == target_name:
+            log(f"Gefundene Rolle: {target_name} -> {role['role_id']}")
+            return role["role_id"]
+    log(f"❌ Rolle '{target_name}' nicht gefunden!", is_error=True)
+    return None
