@@ -217,11 +217,12 @@ def create_users_from_csv(cfg, login_result, mailman: MailClient = None):
             time.sleep(0.2)
 
             # Ressource Pool für Benutzer anlegen
-            pool_id = create_ressource_pool(host, login_result, (username+"_poolll"))
+            pool_id = create_ressource_pool(host, login_result, (username+"_pool"))
             if pool_id == False:
                 continue
             # Projekte erstellen und direkt dem benutzereigenen Pool hinzufügen
             for i in range(int(cfg["anzahl_projekte"])):
+                # Projekt "user_project1" bis x wird angelegt
                 project_id = create_project(host, login_result, (username+"_project"+str(i)))
                 if project_id == False:
                     continue
@@ -230,6 +231,7 @@ def create_users_from_csv(cfg, login_result, mailman: MailClient = None):
             # Email versenden bei Option eingeschaltet
             if mailman is not None:
                 mailman.send_account_mail(
+                    # TODO entfernen debug email
                     to="max95.0@gmx.de",
                     name=fullname,
                     account=username,
