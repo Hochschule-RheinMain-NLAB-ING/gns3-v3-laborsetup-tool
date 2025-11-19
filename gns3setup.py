@@ -401,10 +401,10 @@ def get_role_id_user(host: str, login_result):
     except requests.RequestException as e:
         log(f"Verbindungsfehler: {e}")
         return False
-
+    
     if resp.status_code == 200:
-        log(f"Projekt  hinzugefügt")
-        return True
+        role_id = get_role_id_by_name(resp.json(), "User")
+        return role_id
     else:
         try:
             err = resp.json()
