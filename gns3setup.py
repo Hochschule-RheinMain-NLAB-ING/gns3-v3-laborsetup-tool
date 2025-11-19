@@ -352,9 +352,46 @@ def allocate_project_to_pool(host: str, login_result, project_id: str, pool_id:s
         log(resp.json())
         return False
 
-def create_ace(host: str, login_result):
-    # poolverzeichnis als endpoint
+def create_ace(host: str, login_result, endpoint_pool_id, user_id, role_id):
+    """
+    Es wird ein ACL Eintrag erstellt: Dem User mit der UserID wird der Pfad seines
+    erstellten Pools mit der Berechtigungsrolle "User" zugeteilt
+    """
     path = ("/v3/access/acl")
+    url = f"http://{host}{path}"
+    headers = build_headers(login_result)
+    session = login_result["session"]
+    # poolverzeichnis als endpoint
+
+    scheme = {
+        "ace_type": "user",
+        "path": ("/pools/"+endpoint_pool_id),
+        "propagate": True,
+        "allowed": True,
+        "user_id": user_id,
+        "role_id": role_id
+    }
+
+    try:
+        resp = session.get(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+    except requests.RequestException as e:
+        log(f"Verbindungsfehler: {e}")
+        return False
+
+    if resp.status_code == 200:
+        log(f"Prefügt")
+        return True
+    else:
+        try:
+            err = resp.json()
+        except:
+            err = resp.text
+        log("Etwas ist schiefgelaufen: ")
+        log(resp.json())
+        return False
+
+def get_role_id_user(host: str, login_result):
+    path = ("/v3/access/roles")
     url = f"http://{host}{path}"
     headers = build_headers(login_result)
     session = login_result["session"]
