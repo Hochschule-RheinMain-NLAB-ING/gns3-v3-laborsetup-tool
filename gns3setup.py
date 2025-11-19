@@ -203,17 +203,16 @@ def create_users_from_csv(cfg, login_result, mailman: MailClient = None):
                 "full_name": fullname,
                 "password": password
             }
-
             # Benutzer anlegen
             log(f"👤 Erstelle Benutzer '{username}' ({fullname}) ...")
             result = create_user(host, login_result, user_payload)
-            # evtl weglassen
             if result != False:
                 log(f"   ✅ Benutzer '{username}' erfolgreich angelegt.")
             else:
                 log(f"   ❌ Fehler bei '{username}': {result}", is_error=True)
                 fail += 1
-                #continue
+                continue
+            # TODO evtl mehr sleeps falls database (serverseitig) zu langsam
             time.sleep(0.2)
 
             # Ressource Pool für Benutzer anlegen
@@ -245,7 +244,7 @@ def create_users_from_csv(cfg, login_result, mailman: MailClient = None):
     log(f"❌ Fehlgeschlagen: {fail}")
     return success, fail
 
-def create_user(host: str, login_result, user_payload: str):
+def create_user(host: str, login_result, user_payload):
     create_path = "/v3/access/users"
     url = f"http://{host}{create_path}"
     headers = build_headers(login_result)
@@ -254,7 +253,7 @@ def create_user(host: str, login_result, user_payload: str):
     try:
         resp = session.post(url, json=user_payload, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        log(f"Verbindungsfehler: {e}")
+        log(f"Verbindungsfehler: {e}", is_error=True)
         return False
 
     if resp.status_code in (200, 201):
@@ -262,10 +261,7 @@ def create_user(host: str, login_result, user_payload: str):
         user_id = resp.json().get("user_id")
         return user_id
     else:
-        try:
-            err = resp.json()
-        except:
-            err = resp.text
+        log("Etwas ist schiefgelaufen: ", is_error=True)
         log(resp.json(), is_error=True)
         return False
 
@@ -282,19 +278,16 @@ def create_ressource_pool(host: str, login_result, name: str):
     try:
         resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        log(f"Verbindungsfehler: {e}")
+        log(f"Verbindungsfehler: {e}", is_error=True)
         return False
 
     if resp.status_code in (200, 201):
-        log(resp.json())
+        #log(resp.json())
         log(f"Pool {name} angelegt")
         pool_id = resp.json().get("resource_pool_id")
         return pool_id
     else:
-        try:
-            err = resp.json()
-        except:
-            err = resp.text
+        log("Etwas ist schiefgelaufen: ", is_error=True)
         log(resp.json(), is_error=True)
         return False
 
@@ -311,24 +304,20 @@ def create_project(host: str, login_result, name: str):
     try:
         resp = session.post(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        log(f"Verbindungsfehler: {e}")
+        log(f"Verbindungsfehler: {e}", is_error=True)
         return False
 
     if resp.status_code in (200, 201):
-        log(resp.json())
+        #log(resp.json())
         log(f"Projekt {name} angelegt")
         project_id = resp.json().get("project_id")
         return project_id
     else:
-        try:
-            err = resp.json()
-        except:
-            err = resp.text
-        log("Etwas ist schiefgelaufen: ")
-        log(resp.json())
+        log("Etwas ist schiefgelaufen: ", is_error=True)
+        log(resp.json(), is_error=True)
         return False
 
-def allocate_project_to_pool(host: str, login_result, project_id: str, pool_id:str) -> bool:
+def allocate_project_to_pool(host: str, login_result, project_id: str, pool_id: str) -> bool:
     path = ("/v3/pools/"+pool_id+"/resources/"+project_id)
     url = f"http://{host}{path}"
     headers = build_headers(login_result)
@@ -337,19 +326,15 @@ def allocate_project_to_pool(host: str, login_result, project_id: str, pool_id:s
     try:
         resp = session.put(url, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        log(f"Verbindungsfehler: {e}")
+        log(f"Verbindungsfehler: {e}", is_error=True)
         return False
 
     if resp.status_code == 204:
         log(f"Projekt {project_id} zu Pool {pool_id} hinzugefügt")
         return True
     else:
-        try:
-            err = resp.json()
-        except:
-            err = resp.text
-        log("Etwas ist schiefgelaufen: ")
-        log(resp.json())
+        log("Etwas ist schiefgelaufen: ", is_error=True)
+        log(resp.json(), is_error=True)
         return False
 
 def create_ace(host: str, login_result, endpoint_pool_id, user_id, role_id):
@@ -375,19 +360,15 @@ def create_ace(host: str, login_result, endpoint_pool_id, user_id, role_id):
     try:
         resp = session.get(url, json=scheme, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        log(f"Verbindungsfehler: {e}")
+        log(f"Verbindungsfehler: {e}", is_error=True)
         return False
 
     if resp.status_code == 200:
         log(f"Prefügt")
         return True
     else:
-        try:
-            err = resp.json()
-        except:
-            err = resp.text
-        log("Etwas ist schiefgelaufen: ")
-        log(resp.json())
+        log("Etwas ist schiefgelaufen: ", is_error=True)
+        log(resp.json(), is_error=True)
         return False
 
 def get_role_id_user(host: str, login_result):
@@ -399,19 +380,15 @@ def get_role_id_user(host: str, login_result):
     try:
         resp = session.get(url, headers=headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
     except requests.RequestException as e:
-        log(f"Verbindungsfehler: {e}")
+        log(f"Verbindungsfehler: {e}", is_error=True)
         return False
     
     if resp.status_code == 200:
         role_id = get_role_id_by_name(resp.json(), "User")
         return role_id
     else:
-        try:
-            err = resp.json()
-        except:
-            err = resp.text
-        log("Etwas ist schiefgelaufen: ")
-        log(resp.json())
+        log("Etwas ist schiefgelaufen: ", is_error=True)
+        log(resp.json(), is_error=True)
         return False
 
 def get_role_id_by_name(roles, target_name):
