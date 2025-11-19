@@ -2,28 +2,23 @@ import gns3setup as gs
 from mail import MailClient
 
 def main():
-    # Logdatei beginnen
-    gs.log_start()
-    gs.log("🚀 Starte GNS3 API Tool...")
-
-    # config.ini laden    
-    cfg = gs.load_config()
-
-    # Login-versuch zum gns3-server
-    login_result = gs.login(cfg["host"], cfg["login_user"], cfg["login_pass"])
-
-    # Login-versuch zum email-server
-    if cfg["email_option"] == "true":
-        mailman = MailClient(cfg["email_server"], cfg["email_port"], cfg["email"], cfg["email_pw"])
+    setup = gs.Setup()
+    if True:
+        setup.allocate_project_to_pool("f8f5bf87-d0b4-4a4f-9519-74694c2120bc","61767fe5-0543-4b6f-9f37-25c9da1f9d56")
+        return
+    if setup.cfg["email_option"] == "true":
+        # Login-versuch zum email-server
+        mailman = MailClient(setup.cfg["email_server"], setup.cfg["email_port"], 
+                             setup.cfg["email"], setup.cfg["email_pw"])
         mailman.login()
 
         # Hauptablauf .csv Tabelle einlesen
-        gs.create_users_from_csv(cfg, login_result, mailman)
+        setup.create_users_from_csv(mailman)
     else:
         # Hauptablauf .csv Tabelle einlesen OHNE MAIL
-        gs.create_users_from_csv(cfg, login_result)
+        setup.create_users_from_csv()
 
-    gs.log("🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log")
+    setup.log("🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log")
     #pause_exit()
 
 if __name__ == "__main__":
