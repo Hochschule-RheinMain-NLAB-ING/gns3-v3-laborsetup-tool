@@ -16,6 +16,8 @@ import time
 import sys
 import os
 import configparser
+import random
+import string
 from mail import MailClient
 from datetime import datetime
 
@@ -237,23 +239,33 @@ class Setup:
                     fail += 1
                     continue
                 # TODO evtl mehr sleeps falls database (serverseitig) zu langsam
-                time.sleep(0.2)
+                #time.sleep(0.2)
 
                 # Ressource Pool für Benutzer anlegen
                 pool_id = self.create_ressource_pool(username+"_pool")
+                # ACE Eintrag erstellen, damit dem User der Zugriff auf seinen
+                # Pool mit "User-Role"-Rechteverteilung gegeben wird
+                self.create_ace(pool_id, user_id, role_id_user)
                 if pool_id == False:
                     continue
                 # Projekte erstellen und direkt dem benutzereigenen Pool hinzufügen
                 for i in range(int(self.cfg["anzahl_projekte"])):
                     # Projekt "user_project1" bis x wird angelegt
-                    project_id = self.create_project(username+"_project"+str(i))
+                    project_id = self.create_project(username+"_project"+str(i+1))
                     if project_id == False:
                         continue
-                    self.allocate_project_to_pool(project_id, pool_id)
-                
-                # ACE Eintrag erstellen, damit dem User der Zugriff auf seinen
-                # Pool mit "User-Role"-Rechteverteilung gegeben wird
-                self.create_ace(pool_id, user_id, role_id_user)
+                    db_status = self.allocate_project_to_pool(project_id, pool_id)
+                    # Database error abfang
+                    if db_status == "och nee nicht der database error":
+                        # neuen pool erstellen mit "uniqe" name
+                        code = ''.join(random.choices(string.ascii_lowercase, k=2))
+                        pool_id = self.create_ressource_pool(username+"_pool"+code)
+                        db_status = self.allocate_project_to_pool(project_id, pool_id)
+                        if db_status == "och nee nicht der database error":
+                            # extrem unwahrscheinlicher fall, dass genau dieser
+                            #  name auf genau diesem server bereits existiert hat
+                            self.log("hilfe", is_error=True)
+                            continue
 
                 # Email versenden bei Option eingeschaltet
                 if mailman is not None:
@@ -336,7 +348,7 @@ class Setup:
             self.log(resp.json(), is_error=True)
             return False
 
-    def allocate_project_to_pool(self, project_id: str, pool_id: str) -> bool:
+    def allocate_project_to_pool(self, project_id: str, pool_id: str):
         path = ("/v3/pools/"+pool_id+"/resources/"+project_id)
         url = f"http://{self.cfg["host"]}{path}"
 
@@ -349,6 +361,10 @@ class Setup:
         if resp.status_code == 204:
             self.log(f"   ✅ Projekt {project_id} zu Pool {pool_id} hinzugefügt")
             return True
+        elif resp.status_code == 500:
+            self.log(resp.json(), is_error=True)
+            if resp.json().get("message")=="Database error detected, please check logs to find details":
+                return "och nee nicht der database error"
         else:
             self.log(resp.json(), is_error=True)
             return False
@@ -405,6 +421,24 @@ class Setup:
         if resp.status_code == 200:
             role_id = get_role_id_by_name(resp.json(), "User")
             return role_id
+        else:
+            self.log(resp.json(), is_error=True)
+            return False
+        
+    def check_pools(self,h):
+        path = ("/v3/pools/")+h+"/resources"
+        url = f"http://{self.cfg["host"]}{path}"
+
+        try:
+            resp = self.session.get(url, headers=self.headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
+        except requests.RequestException as e:
+            self.log(f"Verbindungsfehler: {e}", is_error=True)
+            return False
+        
+        if resp.status_code == 200:
+            self.log(resp.json())
+
+            return True
         else:
             self.log(resp.json(), is_error=True)
             return False
