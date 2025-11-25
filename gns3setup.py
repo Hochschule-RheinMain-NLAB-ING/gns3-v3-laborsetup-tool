@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automatisches Tool zum Anlegen von Benutzern in GNS3 über die REST-API.
+Automatisches Tool zum Anlegen von Benutzern in GNS3 über die REST-API
 
 Ablauf:
 1. Konfiguration aus config.ini lesen
@@ -115,7 +115,7 @@ class Setup:
 
         headers = {"Content-Type": "application/json"}
 
-        self.log(f"🔐 Melde an bei {self.cfg["host"]} als '{self.cfg["login_user"]}' ...")
+        self.log(f"🔐 Anmeldeversuch bei {self.cfg["host"]} als '{self.cfg["login_user"]}' ...")
         session = requests.Session()
 
         try:
