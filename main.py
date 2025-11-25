@@ -3,15 +3,19 @@ from mail import MailClient
 
 def main():
     setup = gs.Setup()
-    if True:
-        setup.allocate_project_to_pool("f8f5bf87-d0b4-4a4f-9519-74694c2120bc","61767fe5-0543-4b6f-9f37-25c9da1f9d56")
+    if False:
+        setup.check_pools("01713a0b-a1a2-498e-b8c2-249168026878")
         return
     if setup.cfg["email_option"] == "true":
         # Login-versuch zum email-server
         mailman = MailClient(setup.cfg["email_server"], setup.cfg["email_port"], 
                              setup.cfg["email"], setup.cfg["email_pw"])
-        mailman.login()
-
+        login_status = mailman.login()
+        if not login_status:
+            # Falls der Email login failed, meldung 
+            # ob man email lieber deaktivieren will
+            setup.log("Es gab ein Problem beim Einloggen zum Emailserver")
+            return
         # Hauptablauf .csv Tabelle einlesen
         setup.create_users_from_csv(mailman)
     else:
