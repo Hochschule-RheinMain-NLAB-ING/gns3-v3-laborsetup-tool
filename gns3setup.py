@@ -45,7 +45,7 @@ class Setup:
     @staticmethod
     def log_start():
         with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write("\n=== Lauf gestartet am {} ===\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            f.write("\nLauf gestartet am {}\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
     @staticmethod
     def log(msg: str, is_error: bool = False):
@@ -249,17 +249,20 @@ class Setup:
                 if pool_id == False:
                     continue
                 # Projekte erstellen und direkt dem benutzereigenen Pool hinzufügen
+                db_error = False
                 for i in range(int(self.cfg["anzahl_projekte"])):
                     # Projekt "user_project1" bis x wird angelegt
-                    project_id = self.create_project(username+"_project"+str(i+1))
-                    if project_id == False:
-                        continue
+                    if not db_error:
+                        #code = ''.join(random.choices(string.ascii_lowercase, k=2))
+                        project_id = self.create_project(username+"_project_"+code+"_"+str(i+1))
+                        if project_id == False:
+                            continue
                     db_status = self.allocate_project_to_pool(project_id, pool_id)
                     # Database error abfang
                     if db_status == "och nee nicht der database error":
                         # neuen pool erstellen mit "uniqe" name
                         code = ''.join(random.choices(string.ascii_lowercase, k=2))
-                        pool_id = self.create_ressource_pool(username+"_pool"+code)
+                        pool_id = self.create_ressource_pool(username+"_pool_"+code)
                         db_status = self.allocate_project_to_pool(project_id, pool_id)
                         if db_status == "och nee nicht der database error":
                             # extrem unwahrscheinlicher fall, dass genau dieser
@@ -278,7 +281,7 @@ class Setup:
                 # Wenn bis hier alles lief, wurde Nutzer erfolgreich mit Pool+Prj angelegt
                 success += 1
 
-        self.log("\n===== Zusammenfassung =====")
+        self.log("\nBenutzer erstellt:")
         self.log(f"✅ Erfolgreich: {success}")
         self.log(f"❌ Fehlgeschlagen: {fail}")
         return success, fail

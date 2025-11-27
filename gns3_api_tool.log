@@ -1,0 +1,88 @@
+
+Lauf gestartet am 2025-11-27 12:10:15
+[2025-11-27 12:10:15] INFO: 🚀 Starte GNS3 API Tool
+[2025-11-27 12:10:15] ERROR: Konfigurationsdatei 'config.ini' wurde nicht gefunden.
+
+Lauf gestartet am 2025-11-27 12:11:15
+[2025-11-27 12:11:15] INFO: 🚀 Starte GNS3 API Tool
+[2025-11-27 12:11:15] INFO: 🔐 Anmeldeversuch bei 10.0.0.209:3080 als 'admin' ...
+[2025-11-27 12:11:16] INFO: ✅ GNS3-Server Login erfolgreich (Token erhalten).
+[2025-11-27 12:11:16] INFO: 📄 Lese Benutzer aus 'users.csv' ...
+[2025-11-27 12:11:16] INFO: 📑 Erkannte Spalten: ['Status', 'Anrede', 'Titel', 'Vorname', 'Nachname', 'Titel nachgestellt', 'Benutzername', 'Adresse', 'Telefonnr.', 'E-Mail', 'Anmeldedatum', 'Matrikelnummer', 'Studiengänge', 'Position', 'Lernmarktplatz-Beschreibung', 'Matrikelnummer']
+[2025-11-27 12:11:16] INFO:    ✅ Gefundene Rolle: User -> 063badfe-2bba-4222-be35-c350840d94c4
+[2025-11-27 12:11:16] INFO: 👤 Erstelle Benutzer 'bgrossxx' (Bernhard Gross) ...
+[2025-11-27 12:11:16] ERROR: {'message': "Username 'bgrossxx' is already registered"}
+[2025-11-27 12:11:16] INFO: 👤 Erstelle Benutzer 'hwolfxxx' (Heinz Wolf) ...
+[2025-11-27 12:11:16] ERROR: {'message': "Username 'hwolfxxx' is already registered"}
+[2025-11-27 12:11:16] INFO: 
+Benutzer erstellt:
+[2025-11-27 12:11:16] INFO: ✅ Erfolgreich: 0
+[2025-11-27 12:11:16] INFO: ❌ Fehlgeschlagen: 2
+[2025-11-27 12:11:16] INFO: 🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log
+
+Lauf gestartet am 2025-11-27 12:11:41
+[2025-11-27 12:11:41] INFO: 🚀 Starte GNS3 API Tool
+[2025-11-27 12:11:41] INFO: 🔐 Anmeldeversuch bei 10.0.0.209:3080 als 'admin' ...
+[2025-11-27 12:11:41] INFO: ✅ GNS3-Server Login erfolgreich (Token erhalten).
+[2025-11-27 12:11:41] INFO: 📄 Lese Benutzer aus 'users.csv' ...
+[2025-11-27 12:11:41] INFO: 📑 Erkannte Spalten: ['Status', 'Anrede', 'Titel', 'Vorname', 'Nachname', 'Titel nachgestellt', 'Benutzername', 'Adresse', 'Telefonnr.', 'E-Mail', 'Anmeldedatum', 'Matrikelnummer', 'Studiengänge', 'Position', 'Lernmarktplatz-Beschreibung', 'Matrikelnummer']
+[2025-11-27 12:11:41] INFO:    ✅ Gefundene Rolle: User -> 063badfe-2bba-4222-be35-c350840d94c4
+[2025-11-27 12:11:41] INFO: 👤 Erstelle Benutzer 'bgrossxx' (Bernhard Gross) ...
+[2025-11-27 12:11:41] ERROR: {'message': "Username 'bgrossxx' is already registered"}
+[2025-11-27 12:11:41] INFO: 👤 Erstelle Benutzer 'hwolfxxx' (Heinz Wolf) ...
+[2025-11-27 12:11:41] ERROR: {'message': "Username 'hwolfxxx' is already registered"}
+[2025-11-27 12:11:41] INFO: 
+Benutzer erstellt:
+[2025-11-27 12:11:41] INFO: ✅ Erfolgreich: 0
+[2025-11-27 12:11:41] INFO: ❌ Fehlgeschlagen: 2
+[2025-11-27 12:11:41] INFO: 🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log
+
+Lauf gestartet am 2025-11-27 12:19:02
+[2025-11-27 12:19:02] INFO: 🚀 Starte GNS3 API Tool
+[2025-11-27 12:19:02] INFO: 🔐 Anmeldeversuch bei 10.0.0.209:3080 als 'admin' ...
+[2025-11-27 12:19:02] INFO: ✅ GNS3-Server Login erfolgreich (Token erhalten).
+[2025-11-27 12:19:02] INFO: 📄 Lese Benutzer aus 'users.csv' ...
+[2025-11-27 12:19:02] INFO: 📑 Erkannte Spalten: ['Status', 'Anrede', 'Titel', 'Vorname', 'Nachname', 'Titel nachgestellt', 'Benutzername', 'Adresse', 'Telefonnr.', 'E-Mail', 'Anmeldedatum', 'Matrikelnummer', 'Studiengänge', 'Position', 'Lernmarktplatz-Beschreibung', 'Matrikelnummer']
+[2025-11-27 12:19:02] INFO:    ✅ Gefundene Rolle: User -> 063badfe-2bba-4222-be35-c350840d94c4
+[2025-11-27 12:19:02] INFO: 👤 Erstelle Benutzer 'bgrossxx' (Bernhard Gross) ...
+[2025-11-27 12:19:03] INFO:    ✅ Benutzer erfolgreich angelegt.
+[2025-11-27 12:19:03] INFO:    ✅ Pool bgrossxx_pool angelegt
+[2025-11-27 12:19:03] INFO:    ✅ Berechtigung für Ressourcepool gesetzt
+[2025-11-27 12:19:03] INFO:    ✅ Projekt bgrossxx_project_ka_1 angelegt
+[2025-11-27 12:19:03] INFO:    ✅ Projekt 41d197a9-a635-42f0-a943-8afc89b90158 zu Pool 794958da-a23c-403e-8e3e-edec632dead2 hinzugefügt
+[2025-11-27 12:19:03] INFO:    ✅ Projekt bgrossxx_project_si_2 angelegt
+[2025-11-27 12:19:03] INFO:    ✅ Projekt 11c8bb5f-c68f-4096-a736-1319bfe65fba zu Pool 794958da-a23c-403e-8e3e-edec632dead2 hinzugefügt
+[2025-11-27 12:19:03] INFO:    ✅ Projekt bgrossxx_project_wi_3 angelegt
+[2025-11-27 12:19:03] INFO:    ✅ Projekt 128475f1-117a-4427-b380-5bba00b691d5 zu Pool 794958da-a23c-403e-8e3e-edec632dead2 hinzugefügt
+[2025-11-27 12:19:03] INFO: 👤 Erstelle Benutzer 'hwolfxxx' (Heinz Wolf) ...
+[2025-11-27 12:19:04] INFO:    ✅ Benutzer erfolgreich angelegt.
+[2025-11-27 12:19:04] INFO:    ✅ Pool hwolfxxx_pool angelegt
+[2025-11-27 12:19:04] INFO:    ✅ Berechtigung für Ressourcepool gesetzt
+[2025-11-27 12:19:04] INFO:    ✅ Projekt hwolfxxx_project_dy_1 angelegt
+[2025-11-27 12:19:04] INFO:    ✅ Projekt fd78356b-fed4-4206-8f7c-3e3045dcc4f9 zu Pool 5b9fbee1-3371-4937-98a8-9902677074fa hinzugefügt
+[2025-11-27 12:19:04] INFO:    ✅ Projekt hwolfxxx_project_sr_2 angelegt
+[2025-11-27 12:19:04] INFO:    ✅ Projekt 30777dd3-96aa-494d-b9be-dfeb4d3e62d2 zu Pool 5b9fbee1-3371-4937-98a8-9902677074fa hinzugefügt
+[2025-11-27 12:19:04] INFO:    ✅ Projekt hwolfxxx_project_wh_3 angelegt
+[2025-11-27 12:19:04] INFO:    ✅ Projekt b6517bae-765d-4f82-b4b5-0f0da649384f zu Pool 5b9fbee1-3371-4937-98a8-9902677074fa hinzugefügt
+[2025-11-27 12:19:04] INFO: 
+Benutzer erstellt:
+[2025-11-27 12:19:04] INFO: ✅ Erfolgreich: 2
+[2025-11-27 12:19:04] INFO: ❌ Fehlgeschlagen: 0
+[2025-11-27 12:19:04] INFO: 🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log
+
+Lauf gestartet am 2025-11-27 17:15:14
+[2025-11-27 17:15:14] INFO: 🚀 Starte GNS3 API Tool
+[2025-11-27 17:15:14] INFO: 🔐 Anmeldeversuch bei 10.0.0.209:3080 als 'admin' ...
+[2025-11-27 17:15:15] INFO: ✅ GNS3-Server Login erfolgreich (Token erhalten).
+[2025-11-27 17:15:15] INFO: 📄 Lese Benutzer aus 'users.csv' ...
+[2025-11-27 17:15:15] INFO: 📑 Erkannte Spalten: ['Status', 'Anrede', 'Titel', 'Vorname', 'Nachname', 'Titel nachgestellt', 'Benutzername', 'Adresse', 'Telefonnr.', 'E-Mail', 'Anmeldedatum', 'Matrikelnummer', 'Studiengänge', 'Position', 'Lernmarktplatz-Beschreibung', 'Matrikelnummer']
+[2025-11-27 17:15:15] INFO:    ✅ Gefundene Rolle: User -> 063badfe-2bba-4222-be35-c350840d94c4
+[2025-11-27 17:15:15] INFO: 👤 Erstelle Benutzer 'bgrossxx' (Bernhard Gross) ...
+[2025-11-27 17:15:15] ERROR: {'message': "Username 'bgrossxx' is already registered"}
+[2025-11-27 17:15:15] INFO: 👤 Erstelle Benutzer 'hwolfxxx' (Heinz Wolf) ...
+[2025-11-27 17:15:15] ERROR: {'message': "Username 'hwolfxxx' is already registered"}
+[2025-11-27 17:15:15] INFO: 
+Benutzer erstellt:
+[2025-11-27 17:15:15] INFO: ✅ Erfolgreich: 0
+[2025-11-27 17:15:15] INFO: ❌ Fehlgeschlagen: 2
+[2025-11-27 17:15:15] INFO: 🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log
