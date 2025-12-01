@@ -254,19 +254,27 @@ class Setup:
                     # Projekt "user_project1" bis x wird angelegt
                     if not db_error:
                         #code = ''.join(random.choices(string.ascii_lowercase, k=2))
-                        project_id = self.create_project(username+"_project_"+code+"_"+str(i+1))
+                        #project_id = self.create_project(username+"_project_"+code+"_"+str(i+1))
+                        project_id = self.create_project(username+"_project_"+str(i+1))
                         if project_id == False:
                             continue
+                    else:
+                        # neuen pool erstellen mit "uniqe" name
+                        # test nur projekt code zeichen einfügen
+                        code = ''.join(random.choices(string.ascii_lowercase, k=2))
+                        project_id = self.create_project(username+"_project_"+code+"_"+str(i+1))
                     db_status = self.allocate_project_to_pool(project_id, pool_id)
                     # Database error abfang
                     if db_status == "och nee nicht der database error":
+                        db_error = True
                         # neuen pool erstellen mit "uniqe" name
+                        # test nur projekt code zeichen einfügen
                         code = ''.join(random.choices(string.ascii_lowercase, k=2))
-                        pool_id = self.create_ressource_pool(username+"_pool_"+code)
+                        project_id = self.create_project(username+"_project_"+code+"_"+str(i+1))
                         db_status = self.allocate_project_to_pool(project_id, pool_id)
                         if db_status == "och nee nicht der database error":
                             # extrem unwahrscheinlicher fall, dass genau dieser
-                            #  name auf genau diesem server bereits existiert hat
+                            # name auf genau diesem server bereits existiert hat
                             self.log("hilfe", is_error=True)
                             continue
 
