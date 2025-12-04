@@ -3,9 +3,6 @@ from mail import MailClient
 
 def main():
     setup = gs.Setup()
-    if False:
-        setup.check_pools("01713a0b-a1a2-498e-b8c2-249168026878")
-        return
     if setup.cfg["email_option"] == "true":
         # Login-versuch zum email-server
         mailman = MailClient(setup.cfg["email_server"], setup.cfg["email_port"], 
@@ -23,7 +20,7 @@ def main():
         setup.create_users_from_csv()
 
     setup.log("🏁 Vorgang beendet. Details siehe Logdatei: gns3_api_tool.log")
-    #pause_exit()
+    setup.pause_exit()
 
 if __name__ == "__main__":
     main()
