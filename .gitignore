@@ -1,5 +1,7 @@
 /dist
 /build
+/__pycache__
+gns3_api_tool.log
 *.log
 *.txt
 *.csv
