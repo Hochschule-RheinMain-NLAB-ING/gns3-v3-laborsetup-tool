@@ -435,21 +435,3 @@ class Setup:
         else:
             self.log(resp.json(), is_error=True)
             return False
-        
-    def check_pools(self,h):
-        path = ("/v3/pools/")+h+"/resources"
-        url = f"http://{self.cfg["host"]}{path}"
-
-        try:
-            resp = self.session.get(url, headers=self.headers, timeout=DEFAULT_TIMEOUT, verify=VERIFY_TLS)
-        except requests.RequestException as e:
-            self.log(f"Verbindungsfehler: {e}", is_error=True)
-            return False
-        
-        if resp.status_code == 200:
-            self.log(resp.json())
-
-            return True
-        else:
-            self.log(resp.json(), is_error=True)
-            return False
