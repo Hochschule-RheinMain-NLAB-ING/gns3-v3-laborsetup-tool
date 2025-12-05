@@ -269,6 +269,7 @@ class Setup:
                         db_error = True
                         # neuen pool erstellen mit "uniqe" name
                         # test nur projekt code zeichen einfügen
+                        self.log("Um den Fehler zu umgehen, werden individualisierte Namen verwendet")
                         code = ''.join(random.choices(string.ascii_lowercase, k=2))
                         project_id = self.create_project(username+"_project_"+code+"_"+str(i+1))
                         db_status = self.allocate_project_to_pool(project_id, pool_id)
@@ -415,7 +416,7 @@ class Setup:
         def get_role_id_by_name(roles, target_role):
             for role in roles:
                 if role.get("name") == target_role:
-                    self.log(f"   ✅ Gefundene Rolle: {target_role} -> {role['role_id']}")
+                    self.log(f"   ✅ Gefundene Rolle: {target_role} -> ID {role['role_id']}")
                     return role["role_id"]
             self.log(f"Rolle '{target_role}' nicht gefunden!", is_error=True)
             return None

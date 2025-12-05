@@ -2,15 +2,15 @@ import gns3setup as gs
 from mail import MailClient
 
 def main():
+    # Loginversuch zum GNS3 Server
     setup = gs.Setup()
     if setup.cfg["email_option"] == "true":
-        # Login-versuch zum email-server
+        # Loginversuch zum Email-Server
         mailman = MailClient(setup.cfg["email_server"], setup.cfg["email_port"], 
                              setup.cfg["email"], setup.cfg["email_pw"])
         login_status = mailman.login()
         if not login_status:
-            # Falls der Email login failed, meldung 
-            # ob man email lieber deaktivieren will
+            # Falls der Email login failed, meldung
             setup.log("Es gab ein Problem beim Einloggen zum Emailserver")
             return
         # Hauptablauf .csv Tabelle einlesen
