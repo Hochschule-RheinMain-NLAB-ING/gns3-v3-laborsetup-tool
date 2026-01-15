@@ -1,5 +1,12 @@
-# gns3-laborsetup-tool
-## test
+# GNS3 V3 Laborsetuptool
+## Codeänderungen
+Beim Push von Codeänderungen wird automatisch eine GitHub Action ausgeführt, welche eine neue ausführbare EXE baut. Diese kann über "Artifacts" heruntergeladen werden.
+
+Alternativ:
+Code clonen und mit pyinstaller EXE bauen:
+
+pyinstaller --onefile --name laborsetuptool main.py
+
 ## Benutzerhandbuch Laborsetup-Tool
 
 **Voraussetzung**: Der GNS3 Server läuft
